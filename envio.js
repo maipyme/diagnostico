@@ -7,7 +7,7 @@
 */
 (function(){
 "use strict";
-const VERSION_FORMULARIO="v0.8.6";
+const VERSION_FORMULARIO="v0.8.7";
 const VERSION_CALCULO="v0.7.3 · D5 con reescala provisional (x+25)×2";
 const VERSION_RUTEO="Provisional · misma posición que el nivel";
 const VERSION_AVISO="2026-11-18";
@@ -168,8 +168,9 @@ async function enviar(p,ctx){
     if(btn){btn.disabled=true;btn.textContent="Diagnóstico enviado"}
     procCerrar();
     const correo=esc(p.privado.correo);
-    if(res.correo==="enviado")estado("ok",`<b>¡Listo!</b> Te enviamos tu diagnóstico a <b>${correo}</b>. <br>📩 Si no lo ves en unos minutos, búscalo también en <b>Promociones</b> o en <b>Spam</b>, y muévelo a tu bandeja <b>Principal</b> para que no te pierdas nuestros avisos.`);
-    else estado("pendiente",`<b>Tu diagnóstico quedó guardado.</b> El correo a <b>${correo}</b> saldrá en las próximas horas. Mientras tanto, puedes guardar este reporte en PDF.`);
+    const folio=`<br>Tu folio de diagnóstico: <b style="letter-spacing:.04em">${esc(res.codigo_diagnostico)}</b>. Guárdalo para consultar tu diagnóstico más adelante.`;
+    if(res.correo==="enviado")estado("ok",`<b>¡Listo!</b> Te enviamos tu diagnóstico a <b>${correo}</b>.${folio} <br>📩 Si no lo ves en unos minutos, búscalo también en <b>Promociones</b> o en <b>Spam</b>, y muévelo a tu bandeja <b>Principal</b> para que no te pierdas nuestros avisos.`);
+    else estado("pendiente",`<b>Tu diagnóstico quedó guardado.</b> El correo a <b>${correo}</b> saldrá en las próximas horas. Mientras tanto, puedes guardar este reporte en PDF.${folio}`);
     mostrarReporte();
     /* ficha técnica: se dibuja con los códigos que devolvió el servidor y se sube aparte */
     try{
