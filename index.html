@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- v0.8.3: el reporte se muestra solo cuando el diagnóstico quedó guardado; ventana "Evaluando tus respuestas…" con indicador de proceso. -->
+<!-- v0.8.2: Aviso y Términos se abren en ventana con botón Regresar; el botón de PDF solo aparece si el diagnóstico se guardó; detalle técnico en caso de error. -->
 <!-- v0.8.1: textos de lanzamiento; casilla de avisos reescrita; ventana única que invita a marcarla antes de enviar (con "No, gracias" se envía igual) (aviso del encabezado, botón "Ver mi diagnóstico", nota del reporte). Sin cambios de cálculo. -->
 <!-- v0.8.0: conexión con Apps Script (base privada + Sheets de data), códigos generados en el servidor, correo con el diagnóstico, ficha técnica PNG, canal de origen, dos casillas de consentimiento, campo trampa. Cálculo sin cambios respecto a v0.7.3. -->
 <!-- v0.7.3: notas bajo el correo electrónico (ahí se enviará el diagnóstico) y el teléfono (seguimiento). -->
@@ -422,6 +424,13 @@ fieldset.conditional-disabled .option.auto-only{display:flex}
     <div id="avisosModalTitle" class="ai-logic-modal-title">¿Te avisamos cuando abran los cursos?</div>
     <div class="ai-logic-modal-text">Estamos preparando cursos y talleres a partir de los diagnósticos de negocios como el tuyo. Si nos das permiso, te avisamos en cuanto estén listos, junto con eventos y nuevas mediciones.</div>
     <button type="button" id="avisosSi" class="primary">¡Sí, quiero enterarme!</button><button type="button" id="avisosNo" class="secondary">No, gracias</button>
+  </div>
+</div>
+<div id="legalModal" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,3,74,.55);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;width:min(860px,100%);height:min(88vh,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,3,74,.35)">
+    <div id="legalModalTitle" style="padding:14px 18px;font-weight:700;color:#00034A;border-bottom:1px solid #DCE3EE">Aviso de Privacidad</div>
+    <iframe id="legalFrame" title="Documento legal" style="flex:1;border:0;width:100%;background:#F3F6FB"></iframe>
+    <div style="padding:12px 18px;border-top:1px solid #DCE3EE;text-align:center"><button type="button" id="legalCerrar" class="primary" style="min-width:180px">Regresar</button></div>
   </div>
 </div>
 <div id="resetModal" class="ai-logic-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle">
@@ -1343,5 +1352,5 @@ document.querySelectorAll("#demoBar [data-demo]").forEach(b=>b.addEventListener(
 function syncDemoBar(){document.getElementById("demoBar").hidden=location.hash!=="#demo"}
 window.addEventListener("hashchange",syncDemoBar);syncDemoBar();
 </script>
-<script src="envio.js"></script>
+<script src="envio.js?v=0.8.3"></script>
 </body></html>

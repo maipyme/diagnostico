@@ -7,7 +7,7 @@
 */
 (function(){
 "use strict";
-const VERSION_FORMULARIO="v0.8.1";
+const VERSION_FORMULARIO="v0.8.3";
 const VERSION_CALCULO="v0.7.3 · D5 con reescala provisional (x+25)×2";
 const VERSION_RUTEO="Provisional · misma posición que el nivel";
 const VERSION_AVISO="2026-11-18";
@@ -22,7 +22,12 @@ css.textContent=`.envio-estado{margin:18px 0 6px;padding:14px 16px;border-radius
 .envio-estado.ok{background:#ECFDF3;color:#05603A;border:1px solid #ABEFC6}.envio-estado.pendiente{background:#FFFAEB;color:#7A2E0E;border:1px solid #FEDF89}
 .envio-estado.error{background:#FEF3F2;color:#912018;border:1px solid #FECDCA}.envio-estado button{margin-top:10px}
 .envio-spin{display:inline-block;width:14px;height:14px;border:2px solid #9DB8F5;border-top-color:#0058DC;border-radius:50%;animation:envspin .8s linear infinite;vertical-align:-2px;margin-right:8px}
-@keyframes envspin{to{transform:rotate(360deg)}}@media print{.envio-estado{display:none!important}}`;
+@keyframes envspin{to{transform:rotate(360deg)}}
+#procModal{position:fixed;inset:0;z-index:10001;background:rgba(0,3,74,.55);display:none;align-items:center;justify-content:center;padding:16px}
+#procModal .pc{background:#fff;border-radius:18px;max-width:420px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 10px 40px rgba(0,3,74,.35);color:#011755}
+#procModal .ring{width:56px;height:56px;border:6px solid #DCE3EE;border-top-color:#0058DC;border-radius:50%;margin:4px auto 16px;animation:envspin .9s linear infinite}
+#procModal h2{color:#00034A;font-size:21px;margin:0 0 8px}#procModal p{margin:0 0 6px;line-height:1.5}#procModal .det{font-size:12px;opacity:.7;margin-top:8px}
+#procModal button{margin:12px 6px 0}@media print{.envio-estado{display:none!important}}`;
 document.head.appendChild(css);
 
 /* ---------- utilidades ---------- */
@@ -82,10 +87,36 @@ function construirPayload(responses,calc,rep){
   };
 }
 
+/* ---------- v0.8.3 · ventana de proceso: el reporte se muestra solo después de guardar ---------- */
+const pm=document.createElement("div");pm.id="procModal";pm.setAttribute("role","dialog");pm.setAttribute("aria-modal","true");pm.setAttribute("aria-live","polite");document.body.appendChild(pm);
+let procTimer=null;
+function procCargando(){
+  const pasos=["Evaluando tus respuestas…","Calculando tu índice y tu nivel…","Preparando tu reporte personalizado…"];let i=0;
+  pm.innerHTML='<div class="pc"><div class="ring" aria-hidden="true"></div><h2 id="procTxt">'+pasos[0]+'</h2><p>Esto toma solo unos segundos. No cierres esta página.</p></div>';
+  pm.style.display="flex";clearInterval(procTimer);
+  procTimer=setInterval(()=>{i=Math.min(i+1,pasos.length-1);const t=document.getElementById("procTxt");if(t)t.textContent=pasos[i]},2500);
+}
+function procCerrar(){clearInterval(procTimer);pm.style.display="none";pm.innerHTML=""}
+function procError(det){
+  clearInterval(procTimer);
+  pm.innerHTML='<div class="pc"><div style="font-size:40px;line-height:1;margin-bottom:8px">⚠️</div><h2>No pudimos guardar tu diagnóstico</h2><p>Revisa tu conexión a internet e inténtalo de nuevo. Tus respuestas siguen en el formulario.</p><button type="button" class="primary" id="procReintentar">Reintentar</button><button type="button" class="secondary" id="procVolver">Volver al formulario</button><p class="det">Detalle técnico: '+det+'</p></div>';
+  pm.style.display="flex";
+  document.getElementById("procReintentar").addEventListener("click",()=>enviar(ultimoPayload,ultimoReporte));
+  document.getElementById("procVolver").addEventListener("click",procCerrar);
+  document.getElementById("procReintentar").focus();
+}
+function mostrarReporte(){
+  const r=document.getElementById("result");if(r)r.style.display="block";
+  const bar=document.getElementById("progressBar");if(bar)bar.style.display="none";
+  if(r)r.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
 /* ---------- estado visible ---------- */
 function estado(tipo,html){
   const el=document.getElementById("envioEstado");if(!el)return;
   el.className="envio-estado on "+tipo;el.innerHTML=html;
+  /* v0.8.2: el PDF solo se ofrece cuando el diagnóstico ya quedó guardado (o en demostración) */
+  const pa=document.querySelector(".report-actions");if(pa)pa.style.display=(tipo==="cargando"||tipo==="error")?"none":"";
   const b=el.querySelector("[data-reintentar]");if(b)b.addEventListener("click",()=>enviar(ultimoPayload,ultimoReporte));
 }
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -107,6 +138,7 @@ window.enviarDiagnostico=function(responses,calc,rep){
   envioId=nuevoId();
   const p=construirPayload(responses,calc,rep);
   ultimoPayload=p;ultimoReporte={responses,calc,rep};
+  const r=document.getElementById("result");if(r)r.style.display="none";
   enviar(p,ultimoReporte);
 };
 
@@ -114,15 +146,18 @@ async function enviar(p,ctx){
   if(enviando||!p)return;enviando=true;
   const btn=document.getElementById("submitBtn");if(btn){btn.disabled=true;btn.textContent="Enviando…"}
   estado("cargando",'<span class="envio-spin" aria-hidden="true"></span>Guardando tu diagnóstico y enviándolo a tu correo…');
+  procCargando();
   const {_ficha,...cuerpo}=p;
   try{
     const res=await post(cuerpo);
-    if(!res||!res.ok)throw new Error((res&&res.error)||"Respuesta inválida");
+    if(!res||!res.ok){const er=new Error((res&&res.error)||"Respuesta inválida");er.servidor=true;throw er}
     enviado=true;
     if(btn){btn.disabled=true;btn.textContent="Diagnóstico enviado"}
+    procCerrar();
     const correo=esc(p.privado.correo);
     if(res.correo==="enviado")estado("ok",`<b>¡Listo!</b> Te enviamos tu diagnóstico a <b>${correo}</b>. Si no lo ves en unos minutos, revisa tu carpeta de correo no deseado.`);
     else estado("pendiente",`<b>Tu diagnóstico quedó guardado.</b> El correo a <b>${correo}</b> saldrá en las próximas horas. Mientras tanto, puedes guardar este reporte en PDF.`);
+    mostrarReporte();
     /* ficha técnica: se dibuja con los códigos que devolvió el servidor y se sube aparte */
     try{
       const png=await dibujarFicha(p,res);
@@ -132,7 +167,9 @@ async function enviar(p,ctx){
   }catch(e){
     console.error(e);
     if(btn){btn.disabled=false;btn.textContent="Ver mi diagnóstico"}
-    estado("error",'<b>No pudimos guardar tu diagnóstico.</b> Revisa tu conexión a internet e inténtalo de nuevo. Tus respuestas siguen en el formulario.<br><button type="button" class="primary" data-reintentar>Reintentar envío</button>');
+    const det=esc((e&&e.name==="AbortError")?"Tiempo de espera agotado":(e&&e.message)||"Error desconocido");
+    procError(det);
+    estado("error",'<b>No pudimos guardar tu diagnóstico.</b> Revisa tu conexión a internet e inténtalo de nuevo. Tus respuestas siguen en el formulario.<br><button type="button" class="primary" data-reintentar>Reintentar envío</button><br><span style="font-size:12px;opacity:.75">Detalle técnico: '+det+'</span>');
   }finally{enviando=false}
 }
 
@@ -265,5 +302,21 @@ if(fm&&am&&opt){
     am.style.display="flex";document.getElementById("avisosSi").focus();
   },true);
   const prevReset=window.envioReset;window.envioReset=function(){prevReset();avisosPreguntado=false};
+}
+
+/* ---------- v0.8.2 · Aviso de Privacidad y Términos en ventana, con botón Regresar ---------- */
+const lm=document.getElementById("legalModal"),lf=document.getElementById("legalFrame"),lt=document.getElementById("legalModalTitle");
+if(lm&&lf){
+  const cerrarLegal=()=>{lm.style.display="none";lf.src="about:blank";document.body.style.overflow=""};
+  document.addEventListener("click",e=>{
+    const a=e.target.closest&&e.target.closest('a[href$="aviso-de-privacidad.html"],a[href$="terminos.html"]');if(!a)return;
+    e.preventDefault();
+    lt.textContent=/terminos/.test(a.getAttribute("href"))?"Términos y Condiciones":"Aviso de Privacidad";
+    lf.src=a.getAttribute("href");lm.style.display="flex";document.body.style.overflow="hidden";
+    document.getElementById("legalCerrar").focus();
+  });
+  document.getElementById("legalCerrar").addEventListener("click",cerrarLegal);
+  lm.addEventListener("click",e=>{if(e.target===lm)cerrarLegal()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&lm.style.display==="flex")cerrarLegal()});
 }
 })();
