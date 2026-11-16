@@ -7,7 +7,7 @@
 */
 (function(){
 "use strict";
-const VERSION_FORMULARIO="v0.8.7";
+const VERSION_FORMULARIO="v0.8.8";
 const VERSION_CALCULO="v0.7.3 · D5 con reescala provisional (x+25)×2";
 const VERSION_RUTEO="Provisional · misma posición que el nivel";
 const VERSION_AVISO="2026-11-18";
@@ -166,6 +166,7 @@ async function enviar(p,ctx){
     if(!res||!res.ok){const er=new Error((res&&res.error)||"Respuesta inválida");er.servidor=true;throw er}
     enviado=true;
     if(btn){btn.disabled=true;btn.textContent="Diagnóstico enviado"}
+    try{borradorBorrar()}catch(e){}
     procCerrar();
     const correo=esc(p.privado.correo);
     const folio=`<br>Tu folio de diagnóstico: <b style="letter-spacing:.04em">${esc(res.codigo_diagnostico)}</b>. Guárdalo para consultar tu diagnóstico más adelante.`;
@@ -333,4 +334,65 @@ if(lm&&lf){
   lm.addEventListener("click",e=>{if(e.target===lm)cerrarLegal()});
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&lm.style.display==="flex")cerrarLegal()});
 }
+
+/* ---------- v0.8.8 · Guardado automático del avance en este navegador ----------
+   Si la página se cierra o se recarga, las respuestas se recuperan al volver (hasta 7 días).
+   Se guarda solo en el dispositivo de la persona; se borra al enviar el diagnóstico o al pulsar «Limpiar».
+   No se guardan las casillas de consentimiento: se vuelven a marcar al final. */
+const BKEY="maipyme_borrador_v1",BDIAS=7;
+let restaurando=false,bTimer=null;
+function borradorBorrar(){try{localStorage.removeItem(BKEY)}catch(e){}}
+function borradorGuardar(){
+  if(restaurando||enviado||location.hash==="#demo")return;
+  const f=document.getElementById("diagnostico");if(!f)return;
+  const d={v:1,t:Date.now(),campos:{},radios:{},checks:{},otros:{},q2:{}};
+  ["nombre_empresa","nombre_respondente","puesto_funcion","email","telefono"].forEach(id=>{const e=document.getElementById(id);if(e&&e.value)d.campos[id]=e.value});
+  const q4=f.querySelector('select[name="q4"]');if(q4&&q4.value)d.campos.q4=q4.value;
+  f.querySelectorAll('input[type="radio"]:checked').forEach(i=>{if(i.name!=="q2_option"&&!i.closest("fieldset")?.disabled)d.radios[i.name]=i.value});
+  f.querySelectorAll('input[type="checkbox"]:checked').forEach(i=>{if(["consentimiento","acepta_comunicaciones","demoEnviarReal"].includes(i.id)||i.closest("fieldset")?.disabled)return;(d.checks[i.name]=d.checks[i.name]||[]).push(i.value)});
+  f.querySelectorAll('input[id$="_otro"]').forEach(i=>{if(i.value.trim())d.otros[i.id]=i.value});
+  const q2o=f.querySelector('input[name="q2_option"]:checked');if(q2o)d.q2.opt=q2o.value;
+  const q2t=document.getElementById("q2-other-text");if(q2t&&q2t.value.trim())d.q2.otro=q2t.value;
+  const hay=Object.keys(d.campos).length+Object.keys(d.radios).length+Object.keys(d.checks).length;
+  try{if(hay)localStorage.setItem(BKEY,JSON.stringify(d));else localStorage.removeItem(BKEY)}catch(e){}
+}
+function borradorRestaurar(){
+  let d;try{d=JSON.parse(localStorage.getItem(BKEY)||"null")}catch(e){d=null}
+  if(!d||d.v!==1)return false;
+  if(Date.now()-d.t>BDIAS*864e5){borradorBorrar();return false}
+  const f=document.getElementById("diagnostico");if(!f)return false;
+  restaurando=true;
+  try{
+    Object.entries(d.campos||{}).forEach(([id,val])=>{const e=id==="q4"?f.querySelector('select[name="q4"]'):document.getElementById(id);if(e)e.value=val});
+    const set=(name,val)=>{const i=[...f.querySelectorAll(`input[name="${name}"]`)].find(x=>x.value===val);if(i)i.checked=true};
+    if(d.radios.q1){set("q1",d.radios.q1);renderQ2();
+      if(d.radios.q1==="Otro"){const t=document.getElementById("q2-other-text");if(t&&d.q2.otro){t.value=d.q2.otro;t.dispatchEvent(new Event("input",{bubbles:true}))}}
+      else if(d.q2.opt){const o=[...f.querySelectorAll('input[name="q2_option"]')].find(x=>x.value===d.q2.opt);if(o){o.checked=true;o.dispatchEvent(new Event("change",{bubbles:true}));
+        if(d.q2.opt==="Otro"&&d.q2.otro){const t=document.getElementById("q2-other-text");if(t){t.value=d.q2.otro;t.dispatchEvent(new Event("input",{bubbles:true}))}}}}}
+    Object.entries(d.radios||{}).forEach(([n,val])=>{if(n!=="q1")set(n,val)});
+    Object.entries(d.checks||{}).forEach(([n,vals])=>vals.forEach(val=>set(n,val)));
+    syncAIQuestions();if(typeof aiLogicModal!=="undefined"&&aiLogicModal)aiLogicModal.style.display="none";
+    syncOtherBoxes();
+    Object.entries(d.otros||{}).forEach(([id,val])=>{const e=document.getElementById(id);if(e&&!e.disabled)e.value=val});
+    if(typeof syncProcessConsistency==="function")syncProcessConsistency();
+    f.querySelectorAll('fieldset[data-type="multi"]').forEach(fs=>{const c=fs.querySelector(".counter");if(c){const max=Number(fs.dataset.maxSelections||99);c.textContent=`Seleccionadas: ${fs.querySelectorAll('input[type="checkbox"]:checked').length} / ${max}`}});
+    f.dispatchEvent(new Event("change"));
+  }finally{restaurando=false}
+  return true;
+}
+(function(){
+  const f=document.getElementById("diagnostico");if(!f)return;
+  const programar=()=>{clearTimeout(bTimer);bTimer=setTimeout(borradorGuardar,400)};
+  f.addEventListener("change",programar);f.addEventListener("input",programar);
+  window.addEventListener("pagehide",borradorGuardar);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")borradorGuardar()});
+  if(location.hash!=="#demo"&&borradorRestaurar()){
+    const av=document.createElement("div");av.className="notice";av.id="avisoBorrador";
+    av.style.cssText="margin:0 0 14px;background:#ECFDF3;border-color:#ABEFC6;color:#05603A";
+    av.innerHTML='<b>Recuperamos las respuestas que llevabas.</b> Puedes continuar donde te quedaste. <button type="button" class="secondary" id="borradorNuevo" style="margin-left:6px;padding:4px 10px">Empezar de nuevo</button>';
+    f.insertBefore(av,f.firstChild);
+    document.getElementById("borradorNuevo").addEventListener("click",()=>{borradorBorrar();resetDiagnostico();av.remove();window.scrollTo({top:0,behavior:"smooth"})});
+  }
+  const prev=window.envioReset;window.envioReset=function(){prev();borradorBorrar();document.getElementById("avisoBorrador")?.remove()};
+})();
 })();

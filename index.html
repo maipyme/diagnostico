@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- v0.8.8: guardado automático del avance en el navegador (se recupera si la página se cierra o recarga). -->
 <!-- v0.8.4: casilla "Enviar de verdad" en el modo demostración; aviso si el correo es de ejemplo. -->
 <!-- v0.8.3: el reporte se muestra solo cuando el diagnóstico quedó guardado; ventana "Evaluando tus respuestas…" con indicador de proceso. -->
 <!-- v0.8.2: Aviso y Términos se abren en ventana con botón Regresar; el botón de PDF solo aparece si el diagnóstico se guardó; detalle técnico en caso de error. -->
@@ -1353,5 +1354,5 @@ document.querySelectorAll("#demoBar [data-demo]").forEach(b=>b.addEventListener(
 function syncDemoBar(){document.getElementById("demoBar").hidden=location.hash!=="#demo"}
 window.addEventListener("hashchange",syncDemoBar);syncDemoBar();
 </script>
-<script src="envio.js?v=0.8.7"></script>
+<script src="envio.js?v=0.8.8"></script>
 </body></html>
