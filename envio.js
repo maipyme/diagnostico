@@ -7,7 +7,7 @@
 */
 (function(){
 "use strict";
-const VERSION_FORMULARIO="v0.8.0";
+const VERSION_FORMULARIO="v0.8.1";
 const VERSION_CALCULO="v0.7.3 · D5 con reescala provisional (x+25)×2";
 const VERSION_RUTEO="Provisional · misma posición que el nivel";
 const VERSION_AVISO="2026-11-18";
@@ -131,7 +131,7 @@ async function enviar(p,ctx){
     }catch(e){console.error("Ficha técnica no enviada",e)}
   }catch(e){
     console.error(e);
-    if(btn){btn.disabled=false;btn.textContent="Calcular diagnóstico de prueba"}
+    if(btn){btn.disabled=false;btn.textContent="Ver mi diagnóstico"}
     estado("error",'<b>No pudimos guardar tu diagnóstico.</b> Revisa tu conexión a internet e inténtalo de nuevo. Tus respuestas siguen en el formulario.<br><button type="button" class="primary" data-reintentar>Reintentar envío</button>');
   }finally{enviando=false}
 }
@@ -245,4 +245,25 @@ window.dibujarFicha=async function(p,res){
   const o=out.getContext("2d");o.fillStyle="#fff";o.fillRect(0,0,W,H);o.drawImage(cv,0,0);
   return out.toDataURL("image/png");
 };
+
+/* ---------- v0.8.1 · Invitación única a marcar la casilla de avisos ----------
+   Se muestra una sola vez, solo si el formulario está completo y la casilla opcional está sin marcar.
+   "No, gracias" envía igual, sin marcarla. Nunca se marca sin que la persona lo elija. */
+let avisosPreguntado=false;
+const fm=document.getElementById("diagnostico"),am=document.getElementById("avisosModal"),opt=document.getElementById("acepta_comunicaciones");
+if(fm&&am&&opt){
+  const masc=document.querySelector("img.mascot");const mi=document.getElementById("avisosMascot");if(masc&&mi)mi.src=masc.src;else if(mi)mi.remove();
+  const cerrar=()=>{am.style.display="none"};
+  const enviarYa=()=>{avisosPreguntado=true;cerrar();if(fm.requestSubmit)fm.requestSubmit(document.getElementById("submitBtn"));else document.getElementById("submitBtn").click()};
+  document.getElementById("avisosSi").addEventListener("click",()=>{opt.checked=true;enviarYa()});
+  document.getElementById("avisosNo").addEventListener("click",enviarYa);
+  am.addEventListener("keydown",e=>{if(e.key==="Escape")cerrar()});
+  fm.addEventListener("submit",e=>{
+    if(avisosPreguntado||opt.checked||enviado||location.hash==="#demo")return;
+    if(!validate().ok)return; /* si falta algo, primero se corrige el formulario */
+    e.preventDefault();e.stopImmediatePropagation();
+    am.style.display="flex";document.getElementById("avisosSi").focus();
+  },true);
+  const prevReset=window.envioReset;window.envioReset=function(){prevReset();avisosPreguntado=false};
+}
 })();
