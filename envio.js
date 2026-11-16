@@ -7,7 +7,7 @@
 */
 (function(){
 "use strict";
-const VERSION_FORMULARIO="v0.8.3";
+const VERSION_FORMULARIO="v0.8.4";
 const VERSION_CALCULO="v0.7.3 · D5 con reescala provisional (x+25)×2";
 const VERSION_RUTEO="Provisional · misma posición que el nivel";
 const VERSION_AVISO="2026-11-18";
@@ -37,6 +37,11 @@ const sg=x=>x===null||x===undefined?"N/A":(x>0?"+"+x:String(x));
 const sinIdNivel=t=>String(t).replace(/\s*\(N[1-5]\)/g,"");
 function canal(){const p=new URLSearchParams(location.search).get("canal")||"";const c=p.toLowerCase().replace(/[^a-z0-9_-]/g,"").slice(0,30);return c||"directo"}
 function nuevoId(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2,12))}
+/* v0.8.4 · en modo demostración, una casilla permite enviar de verdad (pruebas con datos de ejemplo) */
+const demoReal=(()=>{const bar=document.getElementById("demoBar");if(!bar)return null;
+  const l=document.createElement("label");l.style.cssText="display:inline-flex;align-items:center;gap:6px;margin-left:12px;font-weight:700;cursor:pointer";
+  l.innerHTML='<input type="checkbox" id="demoEnviarReal"> Enviar de verdad (guarda en las hojas y manda el correo)';bar.appendChild(l);return l.querySelector("input")})();
+const esDemo=()=>location.hash==="#demo"&&!(demoReal&&demoReal.checked);
 let envioId=null,ultimoPayload=null,ultimoReporte=null,enviando=false,enviado=false;
 window.envioReset=function(){envioId=null;ultimoPayload=null;ultimoReporte=null;enviando=false;enviado=false};
 
@@ -111,6 +116,11 @@ function mostrarReporte(){
   if(r)r.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
+function alertaCorreoEjemplo(){
+  pm.innerHTML='<div class="pc"><div style="font-size:40px;line-height:1;margin-bottom:8px">✉️</div><h2>Cambia el correo de ejemplo</h2><p>El correo es de ejemplo y el diagnóstico no llegaría. Escribe un correo real y vuelve a pulsar «Ver mi diagnóstico».</p><button type="button" class="primary" id="procOk">Entendido</button></div>';
+  pm.style.display="flex";document.getElementById("procOk").addEventListener("click",()=>{procCerrar();const e=document.getElementById("email");e?.scrollIntoView({behavior:"smooth",block:"center"});e?.focus({preventScroll:true})});
+}
+
 /* ---------- estado visible ---------- */
 function estado(tipo,html){
   const el=document.getElementById("envioEstado");if(!el)return;
@@ -131,10 +141,13 @@ async function post(obj){
 }
 
 window.enviarDiagnostico=function(responses,calc,rep){
-  if(location.hash==="#demo"){estado("pendiente","<b>Modo demostración:</b> este diagnóstico no se guardó ni se envió por correo.");return}
+  if(esDemo()){estado("pendiente","<b>Modo demostración:</b> este diagnóstico no se guardó ni se envió por correo.");return}
   if(!APPS_SCRIPT_URL){estado("pendiente","<b>Versión local:</b> no hay conexión configurada; el diagnóstico no se guardó.");return}
   if(enviado){estado("ok","Tu diagnóstico ya fue enviado. Para responder de nuevo, usa «Limpiar».");return}
   if(enviando)return;
+  if(/@ejemplo\.com$/i.test((document.getElementById("email")?.value||"").trim())){
+    const r=document.getElementById("result");if(r)r.style.display="none";
+    alertaCorreoEjemplo();return}
   envioId=nuevoId();
   const p=construirPayload(responses,calc,rep);
   ultimoPayload=p;ultimoReporte={responses,calc,rep};
@@ -296,7 +309,7 @@ if(fm&&am&&opt){
   document.getElementById("avisosNo").addEventListener("click",enviarYa);
   am.addEventListener("keydown",e=>{if(e.key==="Escape")cerrar()});
   fm.addEventListener("submit",e=>{
-    if(avisosPreguntado||opt.checked||enviado||location.hash==="#demo")return;
+    if(avisosPreguntado||opt.checked||enviado||esDemo())return;
     if(!validate().ok)return; /* si falta algo, primero se corrige el formulario */
     e.preventDefault();e.stopImmediatePropagation();
     am.style.display="flex";document.getElementById("avisosSi").focus();
