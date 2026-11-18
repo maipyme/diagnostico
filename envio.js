@@ -7,7 +7,7 @@
 */
 (function(){
 "use strict";
-const VERSION_FORMULARIO="v0.8.9";
+const VERSION_FORMULARIO="v0.9.0";
 const VERSION_CALCULO="v0.7.3 · D5 con reescala provisional (x+25)×2";
 const VERSION_RUTEO="Provisional · misma posición que el nivel";
 const VERSION_AVISO="2026-11-18";
@@ -267,7 +267,7 @@ window.dibujarFicha=async function(p,res){
 
   /* lo que vio la empresa */
   y=section("Lo que vio la empresa",y);
-  txt(rp.siguiente_nivel?"Metas para el nivel "+rp.siguiente_nivel+":":"Sin meta siguiente (nivel máximo).",M,y+4,16,C.ink,700);y+=30;
+  txt(rp.siguiente_nivel?"Metas para el nivel "+rp.siguiente_nivel+":":"Nivel máximo · siguientes pasos:",M,y+4,16,C.ink,700);y+=30;
   (rp.metas.length?rp.metas:["—"]).forEach(m=>{y=wrap("✦ "+m,M+10,y,W-2*M-10,15,C.ink)});
   y+=6;txt("Temas «Lo que vas a dominar»: "+(rp.temas.length?rp.temas.join(" · "):"—"),M,y,15,C.ink);y+=30;
 

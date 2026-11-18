@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- v0.9.0: Diamante recibe "siguientes pasos" y temas de "Lo que vas a dominar"; temas de respaldo cuando no hay brechas (también otros niveles). Sin cambios en índice, nivel ni ruta. -->
 <!-- v0.8.9: se quita el botón "Guardar mi reporte en PDF" (fallaba en Safari de iPhone; el diagnóstico llega por correo). -->
 <!-- v0.8.8: guardado automático del avance en el navegador (se recupera si la página se cierra o recarga). -->
 <!-- v0.8.4: casilla "Enviar de verdad" en el modo demostración; aviso si el correo es de ejemplo. -->
@@ -1126,6 +1127,8 @@ form.addEventListener("submit",e=>{
  if(calc.max==="N2"){if(pr<1)goals.push("Descubre cómo la IA puede acompañar un proceso completo de tu negocio, por ejemplo desde que recibes un pedido hasta que lo entregas.");if(D4<75)goals.push("Aprende a convertir lo que ya haces con IA en una forma de trabajo clara y repetible que todo tu equipo pueda seguir.");}
  if(calc.max==="N3"){if(pr<3)goals.push("Lleva la IA a más procesos de tu negocio, como ventas, atención a clientes o inventarios, y multiplica sus beneficios.");if(fn<3)goals.push("Descubre cómo la IA puede ayudarte en más áreas de tu negocio, además de las que ya usas.");if(pu<3)goals.push("Aprovecha la IA para más tipos de tareas: crear contenido, analizar información, organizar documentos y más.");if(D4<100)goals.push("Aprende a integrar la IA de manera consistente en tu forma de trabajar, para que deje de ser algo ocasional y se vuelva parte de tu operación.");}
  if(calc.max==="N4"){if(pr<6)goals.push("Extiende la IA a todavía más procesos de tu negocio y consolida su impacto.");if(fn<6)goals.push("Lleva la IA a todas las áreas clave de tu negocio.");if(pu<6)goals.push("Amplía los tipos de tareas en las que la IA te apoya todos los días.");if(!automation)goals.push("Aprende a poner en marcha tareas que la IA realice automáticamente, siempre con supervisión.");if(c01<10)goals.push("Aprende a verificar de forma habitual lo que produce la IA para usar sus resultados con confianza.");if(c02<0)goals.push("Aprende a proteger la información que compartes con la IA con reglas claras y sencillas.");if(automation&&!(c03===10||c03===25))goals.push("Aprende a supervisar tus automatizaciones para detectar y corregir errores a tiempo.");}
+ /* v0.9.0 · Diamante: siguientes pasos para mantener la ventaja (antes quedaba sin lista) */
+ if(calc.max==="N5"){goals.push("Mide con regularidad cuánto tiempo y dinero te ahorra la IA, para invertir donde más rinde.");goals.push("Documenta tus procesos con IA para que todo tu equipo los aplique igual y puedas crecer sin perder calidad.");goals.push("Revisa periódicamente tus automatizaciones y tus reglas de protección de datos para mantenerlas al día.");}
  const teach=[];
  if(!real)teach.push(["Descubre dónde la IA te ahorra tiempo","Identifica en qué partes de tu negocio la IA puede ahorrarte horas de trabajo y empieza a aprovecharla sin complicaciones."]);
  if(real&&c02<0)teach.push(["Protege la información de tu negocio","Cuida tus datos y los de tus clientes con reglas simples que aplicas desde el primer día. Usa la IA con tranquilidad."]);
@@ -1134,6 +1137,11 @@ form.addEventListener("submit",e=>{
  if(real&&m09<50)teach.push(["Mide lo que ganas con la IA","Descubre cuánto tiempo y dinero te está ahorrando la IA e invierte donde más rinde."]);
  if(real&&D4<75)teach.push(["Haz que la IA trabaje en equipo","Convierte lo que ya haces con IA en una forma de trabajo que todo tu equipo repita. Más resultados, menos improvisación."]);
  if(calc.D1<60)teach.push(["Conoce las herramientas que más te convienen","Descubre las herramientas de IA que mejor funcionan para un negocio como el tuyo y empieza a usarlas de inmediato."]);
+ /* v0.9.0 · Temas cuando no hay brechas (sobre todo Diamante): antes la sección desaparecía */
+ if(real&&teach.length<3){const extra=calc.max==="N5"
+   ?[["Explora capacidades avanzadas de IA","Conoce asistentes que trabajan por ti, automatizaciones más completas y nuevas herramientas para ir un paso adelante."],["Lleva la IA a tu estrategia","Usa la IA para analizar tu mercado, anticipar tendencias y tomar mejores decisiones de negocio."],["Optimiza tus procesos con IA","Afina los procesos donde ya usas IA para que rindan más, con menos esfuerzo y menos errores."]]
+   :[["Optimiza tus procesos con IA","Afina los procesos donde ya usas IA para que rindan más, con menos esfuerzo y menos errores."],["Lleva la IA a tu estrategia","Usa la IA para analizar tu mercado, anticipar tendencias y tomar mejores decisiones de negocio."]];
+  for(const t of extra){if(teach.length>=3)break;if(!teach.some(x=>x[0]===t[0]))teach.push(t)}}
  /* Catálogo de cursos: EJEMPLO ilustrativo hasta contar con el catálogo real. */
  const pick=(n)=>Array.isArray(responses["q"+n])?responses["q"+n]:[];
  const needs=pick(21),problems=pick(22),timeTasks=pick(23);
@@ -1177,7 +1185,7 @@ form.addEventListener("submit",e=>{
   <ol class="route-bars" aria-label="Rutas educativas de mAIpyme">${["R1","R2","R3","R4","R5"].map((r,i)=>`<li class="${r===routeId?"current":(r<routeId?"done":"")}"${r===routeId?' aria-current="step"':""}><div class="bar" style="height:${28+i*18}%">${r===routeId?'<em>Tu ruta</em>':""}</div><span>${ROUTES[r].name}</span></li>`).join("")}</ol>
  </div>
  ${next?`<div class="report-block"><h3>Tu siguiente meta: ¡nivel ${RANKS[next].name}!</h3><p>Estás más cerca de lo que crees. Esto es lo que te falta, y te ayudamos a lograrlo en tu ruta:</p><ul class="goal-list">${goals.map(g=>`<li>${g}</li>`).join("")}</ul></div>`
-  :`<div class="report-block"><h3>¡Llegaste a la cima: nivel Diamante!</h3><p>Ahora el reto es mantener la ventaja. Tu ruta te ayuda a optimizar lo que ya funciona y a explorar lo que viene.</p></div>`}
+  :`<div class="report-block"><h3>¡Llegaste a la cima: nivel Diamante!</h3><p>Ahora el reto es mantener la ventaja. Tu ruta te ayuda a optimizar lo que ya funciona y a explorar lo que viene. Tus siguientes pasos:</p>${goals.length?`<ul class="goal-list">${goals.map(g=>`<li>${g}</li>`).join("")}</ul>`:""}</div>`}
  ${teach.length?`<div class="report-block"><h3>Lo que vas a dominar con nosotros</h3><div class="teach-grid">${teach.slice(0,3).map(([t,d])=>`<div class="teach"><b>${t}</b><p>${d}</p></div>`).join("")}</div></div>`:""}
  <div class="report-cta">
   <h3>Tu Ruta ${route.name} te espera</h3>
@@ -1355,5 +1363,5 @@ document.querySelectorAll("#demoBar [data-demo]").forEach(b=>b.addEventListener(
 function syncDemoBar(){document.getElementById("demoBar").hidden=location.hash!=="#demo"}
 window.addEventListener("hashchange",syncDemoBar);syncDemoBar();
 </script>
-<script src="envio.js?v=0.8.9"></script>
+<script src="envio.js?v=0.9.0"></script>
 </body></html>
